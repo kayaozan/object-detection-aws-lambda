@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+torch
+Pillow
+opencv-python
+numpy
+pandas
+requests
+mangum
