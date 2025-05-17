@@ -12,4 +12,4 @@ This project demonstrates a serverless object detection API using FastAPI and YO
 
 ## Demo
 
-To try it yourself, please refer to [this page]().
+To try it yourself, please refer to [this page](https://yolo.d3dzxb2du9m6mh.amplifyapp.com/).

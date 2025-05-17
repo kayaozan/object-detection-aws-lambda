@@ -1,5 +1,16 @@
+// Enhanced script.js with image optimization
+
 // Replace with your actual API Gateway endpoint
 const API_ENDPOINT = 'https://0y2shwjt4c.execute-api.eu-north-1.amazonaws.com/prod';
+
+// Configuration for image optimization
+const IMAGE_CONFIG = {
+    maxWidth: 1024,        // Maximum width in pixels
+    maxHeight: 1024,       // Maximum height in pixels
+    quality: 0.8,          // JPEG quality (0.1 to 1.0)
+    maxFileSizeMB: 5,      // Maximum file size in MB before compression
+    outputFormat: 'jpeg'   // Output format: 'jpeg' or 'webp'
+};
 
 let selectedFile = null;
 
@@ -86,6 +97,100 @@ function showPreview(file) {
     reader.readAsDataURL(file);
 }
 
+// Image optimization functions
+function resizeImage(file, maxWidth, maxHeight, quality) {
+    return new Promise((resolve) => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        const img = new Image();
+        
+        img.onload = function() {
+            // Calculate new dimensions maintaining aspect ratio
+            let { width, height } = calculateDimensions(img.width, img.height, maxWidth, maxHeight);
+            
+            // Set canvas dimensions
+            canvas.width = width;
+            canvas.height = height;
+            
+            // Draw and resize image
+            ctx.drawImage(img, 0, 0, width, height);
+            
+            // Convert to blob with specified quality
+            canvas.toBlob(resolve, `image/${IMAGE_CONFIG.outputFormat}`, quality);
+        };
+        
+        img.src = URL.createObjectURL(file);
+    });
+}
+
+function calculateDimensions(srcWidth, srcHeight, maxWidth, maxHeight) {
+    let width = srcWidth;
+    let height = srcHeight;
+    
+    // Calculate scaling factor
+    const widthRatio = maxWidth / width;
+    const heightRatio = maxHeight / height;
+    const ratio = Math.min(widthRatio, heightRatio);
+    
+    // Only scale down, never up
+    if (ratio < 1) {
+        width = Math.round(width * ratio);
+        height = Math.round(height * ratio);
+    }
+    
+    return { width, height };
+}
+
+async function optimizeImage(file) {
+    const fileSizeMB = file.size / (1024 * 1024);
+    
+    // If file is already small enough, return as-is
+    if (fileSizeMB <= IMAGE_CONFIG.maxFileSizeMB) {
+        console.log('File size acceptable, no optimization needed');
+        return file;
+    }
+    
+    console.log(`Optimizing image: ${formatFileSize(file.size)} -> optimizing...`);
+    
+    try {
+        // Resize image
+        const optimizedBlob = await resizeImage(
+            file, 
+            IMAGE_CONFIG.maxWidth, 
+            IMAGE_CONFIG.maxHeight, 
+            IMAGE_CONFIG.quality
+        );
+        
+        console.log(`Optimization complete: ${formatFileSize(optimizedBlob.size)}`);
+        
+        // Create a new File object from the optimized blob
+        const optimizedFile = new File(
+            [optimizedBlob], 
+            file.name, 
+            { type: optimizedBlob.type }
+        );
+        
+        return optimizedFile;
+    } catch (error) {
+        console.error('Image optimization failed:', error);
+        throw new Error('Failed to optimize image');
+    }
+}
+
+// Convert blob/file to base64
+function fileToBase64(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+            // Remove data URL prefix (data:image/...;base64,)
+            const base64 = reader.result.split(',')[1];
+            resolve(base64);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+}
+
 function showLoading() {
     document.getElementById('loading').classList.add('show');
     detectBtn.disabled = true;
@@ -106,6 +211,47 @@ function hideError() {
     document.getElementById('error').classList.remove('show');
 }
 
+function showWarning(message) {
+    // Assuming you have a warning div in your HTML
+    const warningDiv = document.getElementById('warning') || createWarningDiv();
+    warningDiv.textContent = message;
+    warningDiv.classList.add('show');
+}
+
+function hideWarning() {
+    const warningDiv = document.getElementById('warning');
+    if (warningDiv) {
+        warningDiv.classList.remove('show');
+    }
+}
+
+function createWarningDiv() {
+    const warningDiv = document.createElement('div');
+    warningDiv.id = 'warning';
+    warningDiv.className = 'warning';
+    warningDiv.style.cssText = `
+        background-color: #fff3cd;
+        border: 1px solid #ffeaa7;
+        color: #856404;
+        padding: 10px;
+        margin: 10px 0;
+        border-radius: 5px;
+        display: none;
+    `;
+    warningDiv.classList.add = function(className) {
+        if (className === 'show') warningDiv.style.display = 'block';
+    };
+    warningDiv.classList.remove = function(className) {
+        if (className === 'show') warningDiv.style.display = 'none';
+    };
+    
+    // Insert after file-info div
+    const fileInfo = document.getElementById('file-info');
+    fileInfo.parentNode.insertBefore(warningDiv, fileInfo.nextSibling);
+    
+    return warningDiv;
+}
+
 function showResults() {
     document.getElementById('result-section').classList.add('show');
 }
@@ -122,72 +268,64 @@ async function detectObjects() {
 
     showLoading();
     hideError();
+    hideWarning();
     hideResults();
 
-    // Convert file to base64
-    const reader = new FileReader();
-    
-    reader.onload = async function(e) {
-        try {
-            // Get base64 string (remove data:image/...;base64, prefix)
-            const base64Data = e.target.result.split(',')[1];
-            console.log('Base64 length:', base64Data.length);
-            
-            const response = await fetch(`${API_ENDPOINT}/detect`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    image: base64Data
-                })
-            });
+    try {
+        // Optimize image if needed
+        const optimizedFile = await optimizeImage(selectedFile);
+        
+        // Convert optimized file to base64
+        const base64Data = await fileToBase64(optimizedFile);
+        
+        console.log('Sending optimized image, base64 length:', base64Data.length);
+        console.log('Original size:', formatFileSize(selectedFile.size));
+        console.log('Optimized size:', formatFileSize(optimizedFile.size));
+        
+        const response = await fetch(`${API_ENDPOINT}/detect`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                image: base64Data
+            })
+        });
 
-            console.log('Response status:', response.status);
+        console.log('Response status:', response.status);
 
-            if (!response.ok) {
-                let errorMessage = `HTTP error! status: ${response.status}`;
+        if (!response.ok) {
+            let errorMessage = `HTTP error! status: ${response.status}`;
+            try {
+                const errorData = await response.json();
+                console.log('Error response:', errorData);
+                errorMessage = errorData.detail || errorMessage;
+            } catch (e) {
                 try {
-                    const errorData = await response.json();
-                    console.log('Error response:', errorData);
-                    errorMessage = errorData.detail || errorMessage;
-                } catch (e) {
-                    try {
-                        const errorText = await response.text();
-                        console.log('Error text:', errorText);
-                        errorMessage = errorText || response.statusText || errorMessage;
-                    } catch (e2) {
-                        errorMessage = response.statusText || errorMessage;
-                    }
+                    const errorText = await response.text();
+                    console.log('Error text:', errorText);
+                    errorMessage = errorText || response.statusText || errorMessage;
+                } catch (e2) {
+                    errorMessage = response.statusText || errorMessage;
                 }
-                throw new Error(errorMessage);
             }
-
-            const result = await response.json();
-            console.log('Success response received');
-            
-            const resultImage = document.getElementById('result-image');
-            resultImage.src = `data:image/jpeg;base64,${result.image}`;
-            
-            showResults();
-        } catch (error) {
-            console.error('Error:', error);
-            showError(`Failed to detect objects: ${error.message}`);
-        } finally {
-            hideLoading();
+            throw new Error(errorMessage);
         }
-    };
 
-    reader.onerror = function(error) {
-        console.error('FileReader error:', error);
-        showError('Failed to read the selected file.');
+        const result = await response.json();
+        console.log('Success response received');
+        
+        const resultImage = document.getElementById('result-image');
+        resultImage.src = `data:image/jpeg;base64,${result.image}`;
+        
+        showResults();
+    } catch (error) {
+        console.error('Error:', error);
+        showError(`Failed to detect objects: ${error.message}`);
+    } finally {
         hideLoading();
-    };
-
-    // Read file as data URL (base64)
-    reader.readAsDataURL(selectedFile);
+    }
 }
-
 
 function useSampleImage() {
     // Assuming sample image is named 'sample.jpg' in the same folder
@@ -231,6 +369,7 @@ function resetApp() {
     hideResults();
     hideError();
     hideLoading();
+    hideWarning();
 }
 
 // Initialize app

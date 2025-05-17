@@ -1,14 +1,15 @@
 import io
 import base64
-import numpy as np
-from PIL import Image, ImageDraw, UnidentifiedImageError
-from fastapi import FastAPI, File, UploadFile, HTTPException
-from fastapi.responses import StreamingResponse
-from fastapi.middleware.cors import CORSMiddleware
-from ultralytics import YOLO
-from pydantic import BaseModel
 import logging
+import numpy as np
+from PIL import Image
+from pydantic import BaseModel
+
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from mangum import Mangum
+
+from ultralytics import YOLO
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -76,19 +77,6 @@ async def detect_objects(request: ImageRequest):
         # Check if empty
         if not image_bytes:
             raise HTTPException(status_code=400, detail="Image data is empty after decoding")
-            
-        # Log first few bytes to verify it's not corrupted
-        logger.info(f"First 10 bytes: {image_bytes[:10]}")
-        
-        # Check for valid image signatures
-        if image_bytes.startswith(b'\xff\xd8\xff'):
-            logger.info("Valid JPEG signature detected")
-        elif image_bytes.startswith(b'\x89PNG\r\n\x1a\n'):
-            logger.info("Valid PNG signature detected")
-        elif image_bytes.startswith(b'GIF87a') or image_bytes.startswith(b'GIF89a'):
-            logger.info("Valid GIF signature detected")
-        else:
-            logger.warning(f"Unknown signature: {image_bytes[:10]}")
         
         # Open image with PIL
         try:
@@ -129,9 +117,7 @@ async def detect_objects(request: ImageRequest):
         
         logger.info("Object detection completed successfully")
         return {"image": encoded_result}
-        
-    except HTTPException:
-        raise
+
     except Exception as e:
         logger.error(f"Unexpected error: {e}")
         raise HTTPException(status_code=500, detail=f"Server error: {str(e)}")
