@@ -5,7 +5,7 @@ This project demonstrates a serverless object detection API using FastAPI and YO
 ## Features
 
 - Upload an image via a browser
-- YOLOv5 detects objects and returns an image with bounding boxes
+- YOLOv8 detects objects and returns an image with bounding boxes
 - Serverless backend using AWS Lambda + API Gateway
 - Static frontend hosted on AWS S3
 - GitHub Actions for CI/CD (build and push to ECR)
