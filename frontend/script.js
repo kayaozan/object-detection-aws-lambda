@@ -7,8 +7,8 @@ const API_ENDPOINT = 'https://0y2shwjt4c.execute-api.eu-north-1.amazonaws.com/pr
 const IMAGE_CONFIG = {
     maxWidth: 1024,        // Maximum width in pixels
     maxHeight: 1024,       // Maximum height in pixels
-    quality: 0.8,          // JPEG quality (0.1 to 1.0)
-    maxFileSizeMB: 5,      // Maximum file size in MB before compression
+    quality: 1.0,          // JPEG quality (0.1 to 1.0)
+    maxFileSizeMB: 3,      // Maximum file size in MB before compression
     outputFormat: 'jpeg'   // Output format: 'jpeg' or 'webp'
 };
 
