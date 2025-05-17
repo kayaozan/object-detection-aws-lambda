@@ -1,4 +1,4 @@
-# YOLOv5 Object Detection API on AWS Lambda
+# YOLOv8 Object Detection API on AWS Lambda
 
 This project demonstrates a serverless object detection API using FastAPI and YOLOv5, deployed on AWS Lambda via a Docker container. It includes a simple HTML frontend hosted on S3.
 

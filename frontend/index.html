@@ -1,17 +1,63 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>YOLO Object Detection</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Object Detection App</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <h1>Upload Image</h1>
-  <input type="file" id="imageInput" />
-  <button onclick="uploadImage()">Detect</button>
-  <div id="result">
-    <img id="outputImage" style="max-width: 100%; margin-top: 20px;" />
-    <p id="message"></p>
-  </div>
-  <script src="script.js"></script>
+    <div class="container">
+        <div class="header">
+            <h1>🔍 Object Detection App</h1>
+            <h3>Upload an image to detect objects using YOLOv8n</h3>
+            <p>This app is served on AWS. Refer to
+                <a target="_blank" href="https://github.com/kayaozan/object-detection-aws-lambda">this</a>
+                Github repository for the details.</p>
+        </div>
+
+        <div class="upload-section">
+            <div class="upload-area" id="upload-area">
+                <div class="upload-icon" id="upload-icon">📷</div>
+                <div class="upload-text" id="upload-text">Click to upload or drag and drop</div>
+                <div class="upload-subtext" id="upload-subtext">Supported formats: JPG, PNG, GIF</div>
+            </div>
+            
+            <div class="file-info" id="file-info">
+                <div class="file-name" id="file-name"></div>
+                <div class="file-size" id="file-size"></div>
+            </div>
+            
+            <input type="file" id="file-input" accept="image/*">
+            <button class="btn" onclick="document.getElementById('file-input').click()">
+                Choose File
+            </button>
+            <button class="btn" id="sample-btn" onclick="useSampleImage()">
+                Use Sample Image
+            </button>
+            <button class="btn" id="detect-btn" onclick="detectObjects()" disabled>
+                Detect Objects
+            </button>
+        </div>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Detecting objects... this might take a few seconds.</p>
+            <p>(maybe more at your first request.)</p>
+        </div>
+        
+        <div class="error" id="error"></div>
+
+        <div class="result-section" id="result-section">
+            <div class="image-container">
+                <div class="image-box">
+                    <h3>Image with any Detected Objects</h3>
+                    <img id="result-image" class="image-preview" alt="Result">
+                </div>
+            </div>
+            <button class="btn" onclick="resetApp()">Upload Another Image</button>
+        </div>
+    </div>
+    <script src='script.js'></script>
 </body>
 </html>

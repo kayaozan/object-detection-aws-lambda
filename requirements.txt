@@ -1,9 +1,8 @@
-fastapi
-uvicorn
-torch
+ultralytics
+python-multipart
 Pillow
-opencv-python
 numpy
-pandas
-requests
+fastapi
 mangum
+uvicorn
+pydantic
